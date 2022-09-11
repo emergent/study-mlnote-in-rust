@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.63"
+derive-new = "0.5.9"
 plotters = "0.3.3"
 smartcore = "0.2.1"
