@@ -1,8 +1,9 @@
 use anyhow::Result;
 use mlnote_rs::{get_output_path, regression::*};
-use smartcore::linalg::naive::dense_matrix::*;
-use smartcore::linear::linear_regression::*;
-use std::path::Path;
+use std::{ops::RangeInclusive, path::Path};
+
+const DEGREE: usize = 4;
+const RANGE: RangeInclusive<i32> = 0..=35;
 
 fn main() -> Result<()> {
     let path = get_output_path();
@@ -13,37 +14,16 @@ fn main() -> Result<()> {
 fn run<P: AsRef<Path>>(path: P) -> Result<()> {
     let config = config_icecream();
 
-    // plot linear regression
-    const DEGREE: usize = 4;
-    let x = DenseMatrix::from_2d_vec(
-        &TEMPERATURES
-            .iter()
-            .map(|&x| set_degree(x, DEGREE))
-            .collect::<Vec<Vec<f32>>>(),
-    );
-    let y = SPENDINGS.to_vec();
-
-    let lr = LinearRegression::fit(
-        &x,
-        &y,
-        LinearRegressionParameters::default()
-            .with_solver(LinearRegressionSolverName::QR),
+    let pn = Polynomial::polyfit(
+        dataset::TEMPERATURES,
+        dataset::SPENDINGS,
+        DEGREE,
     )?;
-    let x = (0..=35)
-        .map(|x| x as f32)
-        .map(|x| set_degree(x, DEGREE))
-        .collect::<Vec<Vec<_>>>();
-    let dm = DenseMatrix::from_2d_vec(&x);
-    let yhat = lr.predict(&dm)?;
-    let coef = lr.coefficients();
-    let intercept = lr.intercept();
-    let legend = format_legend(DEGREE, coef, intercept);
+    let yhat = pn.polyval(RANGE)?;
+    let legend = pn.format_legend();
 
-    let series = std::iter::zip(
-        x.into_iter().map(|x| x[0]).collect::<Vec<_>>(),
-        yhat,
-    )
-    .collect::<Vec<_>>();
+    let series =
+        std::iter::zip(RANGE.map(|x| x as f32), yhat).collect::<Vec<_>>();
 
     plot(path, config, series, &legend)?;
 
